@@ -1,33 +1,25 @@
 #include <infiniband/verbs.h>
-
 #include <stdio.h>
-
 #include <unistd.h>
-
 #include <string.h>
+#include <stdlib.h>
 
 #define PORT_NUM 1
-
 #define ENTRY_SIZE                                                             \
   9000 /* The maximum size of each received packet - set to jumbo frame */
-
 #define RQ_NUM_DESC 512 /* The maximum receive ring length without processing  \
                          */
 
 /* The MAC we are listening to. In case your setup is via a network switch, you
  * may need to change the MAC address to suit the network port MAC */
 
-#define DEST_MAC                                                               \
-  { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05 }
+#define DEST_MAC { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05 }
 
 int main() {
 
   struct ibv_device **dev_list;
-
   struct ibv_device *ib_dev;
-
   struct ibv_context *context;
-
   struct ibv_pd *pd;
 
   int ret;
@@ -37,9 +29,7 @@ int main() {
   dev_list = ibv_get_device_list(NULL);
 
   if (!dev_list) {
-
     perror("Failed to get IB devices list");
-
     exit(1);
   }
 
@@ -52,9 +42,7 @@ int main() {
   ib_dev = dev_list[0];
 
   if (!ib_dev) {
-
     fprintf(stderr, "IB device not found\n");
-
     exit(1);
   }
 
@@ -66,11 +54,8 @@ int main() {
   context = ibv_open_device(ib_dev);
 
   if (!context) {
-
     fprintf(stderr, "Couldn't get context for %s\n",
-
             ibv_get_device_name(ib_dev));
-
     exit(1);
   }
 
@@ -81,9 +66,7 @@ int main() {
   pd = ibv_alloc_pd(context);
 
   if (!pd) {
-
     fprintf(stderr, "Couldn't allocate PD\n");
-
     exit(1);
   }
 
@@ -94,9 +77,7 @@ int main() {
   cq = ibv_create_cq(context, RQ_NUM_DESC, NULL, NULL, 0);
 
   if (!cq) {
-
     fprintf(stderr, "Couldn't create CQ %d\n", errno);
-
     exit(1);
   }
 
@@ -105,34 +86,20 @@ int main() {
   struct ibv_qp *qp;
 
   struct ibv_qp_init_attr qp_init_attr = {
-
       .qp_context = NULL,
-
       /* report receive completion to cq */
-
       .send_cq = cq,
-
       .recv_cq = cq,
-
       .cap =
           {
-
               /* no send ring */
-
               .max_send_wr = 0,
-
               /* maximum number of packets in ring */
-
               .max_recv_wr = RQ_NUM_DESC,
-
               /* only one pointer per descriptor */
-
               .max_recv_sge = 1,
-
           },
-
       .qp_type = IBV_QPT_RAW_PACKET,
-
   };
 
   /* 6. Create Queue Pair (QP) - Receive Ring */
@@ -140,9 +107,7 @@ int main() {
   qp = ibv_create_qp(pd, &qp_init_attr);
 
   if (!qp) {
-
     fprintf(stderr, "Couldn't create RSS QP\n");
-
     exit(1);
   }
 
@@ -163,9 +128,7 @@ int main() {
   ret = ibv_modify_qp(qp, &qp_attr, qp_flags);
 
   if (ret < 0) {
-
     fprintf(stderr, "failed modify qp to init\n");
-
     exit(1);
   }
 
@@ -181,9 +144,7 @@ int main() {
   ret = ibv_modify_qp(qp, &qp_attr, qp_flags);
 
   if (ret < 0) {
-
     fprintf(stderr, "failed modify qp to receive\n");
-
     exit(1);
   }
 
@@ -198,9 +159,7 @@ int main() {
   buf = malloc(buf_size);
 
   if (!buf) {
-
     fprintf(stderr, "Coudln't allocate memory\n");
-
     exit(1);
   }
 
@@ -211,9 +170,7 @@ int main() {
   mr = ibv_reg_mr(pd, buf, buf_size, IBV_ACCESS_LOCAL_WRITE);
 
   if (!mr) {
-
     fprintf(stderr, "Couldn't register mr\n");
-
     exit(1);
   }
 
@@ -266,66 +223,38 @@ int main() {
    * in ring pointed by ->qp */
 
   struct raw_eth_flow_attr {
-
     struct ibv_flow_attr attr;
-
     struct ibv_flow_spec_eth spec_eth;
-
   } __attribute__((packed)) flow_attr = {
-
       .attr =
           {
-
               .comp_mask = 0,
-
               .type = IBV_FLOW_ATTR_NORMAL,
-
               .size = sizeof(flow_attr),
-
               .priority = 0,
-
               .num_of_specs = 1,
-
               .port = PORT_NUM,
-
               .flags = 0,
-
           },
-
       .spec_eth =
           {
-
-              .type = IBV_EXP_FLOW_SPEC_ETH,
-
+            .type = IBV_FLOW_SPEC_ETH,
               .size = sizeof(struct ibv_flow_spec_eth),
-
               .val =
                   {
-
                       .dst_mac = DEST_MAC,
-
-                      ..src_mac = {0xe4, 0x1d, 0x2d, 0xf3, 0xdd, 0xcc},
-
+                      .src_mac = {0xe4, 0x1d, 0x2d, 0xf3, 0xdd, 0xcc},
                       .ether_type = 0,
                       .src_mac = {0xe4, 0x1d, 0x2d, 0xf3, 0xdd, 0xcc},
-
                       .vlan_tag = 0,
-
                   },
-
               .mask =
                   {
-
                       .dst_mac = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},
-
                       .src_mac = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},
-
                       .ether_type = 0,
-
                       .vlan_tag = 0,
-
                   }
-
           }
 
   };
@@ -337,9 +266,7 @@ int main() {
   eth_flow = ibv_create_flow(qp, &flow_attr.attr);
 
   if (!eth_flow) {
-
     fprintf(stderr, "Couldn't attach steering flow\n");
-
     exit(1);
   }
 
@@ -370,9 +297,7 @@ int main() {
       */
 
       printf("message %ld received size %d\n", wc.wr_id, wc.byte_len);
-
       sg_entry.addr = (uint64_t)buf + wc.wr_id * ENTRY_SIZE;
-
       wr.wr_id = wc.wr_id;
 
       /* after processed need to post back buffer */

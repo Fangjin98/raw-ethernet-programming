@@ -1,5 +1,6 @@
 #include <infiniband/verbs.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
 
@@ -69,7 +70,7 @@ int main() {
 
   if (!context) {
     fprintf(stderr, "Couldn't get context for %s\n",
-            ibv_get_device_name(ib_dev));
+    ibv_get_device_name(ib_dev));
     exit(1);
   }
 
@@ -80,9 +81,7 @@ int main() {
   pd = ibv_alloc_pd(context);
 
   if (!pd) {
-
     fprintf(stderr, "Couldn't allocate PD\n");
-
     exit(1);
   }
 
@@ -93,9 +92,7 @@ int main() {
   cq = ibv_create_cq(context, SQ_NUM_DESC, NULL, NULL, 0);
 
   if (!cq) {
-
     fprintf(stderr, "Couldn't create CQ %d\n", errno);
-
     exit(1);
   }
 
@@ -104,38 +101,23 @@ int main() {
   struct ibv_qp *qp;
 
   struct ibv_qp_init_attr qp_init_attr = {
-
       .qp_context = NULL,
-
       /* report send completion to cq */
-
       .send_cq = cq,
-
       .recv_cq = cq,
-
       .cap =
           {
-
               /* number of allowed outstanding sends without waiting for a
                  completion */
-
               .max_send_wr = SQ_NUM_DESC,
-
               /* maximum number of pointers in each descriptor */
-
               .max_send_sge = 1,
-
               /* if inline maximum of payload data in the descriptors themselves
                */
-
               .max_inline_data = 512,
-
               .max_recv_wr = 0
-
           },
-
       .qp_type = IBV_QPT_RAW_PACKET,
-
   };
 
   /* 6. Create Queue Pair (QP) - Send Ring */
@@ -143,9 +125,7 @@ int main() {
   qp = ibv_create_qp(pd, &qp_init_attr);
 
   if (!qp) {
-
     fprintf(stderr, "Couldn't create RSS QP\n");
-
     exit(1);
   }
 
@@ -186,9 +166,7 @@ int main() {
   ret = ibv_modify_qp(qp, &qp_attr, qp_flags);
 
   if (ret < 0) {
-
     fprintf(stderr, "failed modify qp to receive\n");
-
     exit(1);
   }
 
@@ -201,26 +179,20 @@ int main() {
   ret = ibv_modify_qp(qp, &qp_attr, qp_flags);
 
   if (ret < 0) {
-
     fprintf(stderr, "failed modify qp to receive\n");
-
     exit(1);
   }
 
   /* 9. Allocate Memory */
 
-  int buf_size =
-      ENTRY_SIZE *
-      SQ_NUM_DESC; /* maximum size of data to be access directly by hw */
+  int buf_size = ENTRY_SIZE * SQ_NUM_DESC; /* maximum size of data to be access directly by hw */
 
   void *buf;
 
   buf = malloc(buf_size);
 
   if (!buf) {
-
     fprintf(stderr, "Coudln't allocate memory\n");
-
     exit(1);
   }
 
@@ -231,9 +203,7 @@ int main() {
   mr = ibv_reg_mr(pd, buf, buf_size, IBV_ACCESS_LOCAL_WRITE);
 
   if (!mr) {
-
     fprintf(stderr, "Couldn't register mr\n");
-
     exit(1);
   }
 
@@ -284,39 +254,28 @@ int main() {
   while (1) {
 
     /*
-
     * inline means data will be copied to space pre-allocated in descriptor
-
     * as long as it is small enough. otherwise pointer reference will be used.
-
     * see max_inline_data = 512 above.
-
     */
 
     wr.send_flags = IBV_SEND_INLINE;
 
     /*
-
     * we ask for a completion every half queue. only interested in completions
     to monitor progress.
-
     */
 
     if ((n % (SQ_NUM_DESC / 2)) == 0) {
-
       wr.wr_id = n;
-
       wr.send_flags |= IBV_SEND_SIGNALED;
     }
 
     /* push descriptor to hardware */
 
     ret = ibv_post_send(qp, &wr, &bad_wr);
-
     if (ret < 0) {
-
       fprintf(stderr, "failed in post send\n");
-
       exit(1);
     }
 
@@ -325,17 +284,12 @@ int main() {
     /* poll for completion after half ring is posted */
 
     if ((n % (SQ_NUM_DESC / 2)) == 0 && n > 0) {
-
       msgs_completed = ibv_poll_cq(cq, 1, &wc);
-
       if (msgs_completed > 0) {
-
         printf("completed message %ld\n", wc.wr_id);
 
       } else if (msgs_completed < 0) {
-
         printf("Polling error\n");
-
         exit(1);
       }
     }
