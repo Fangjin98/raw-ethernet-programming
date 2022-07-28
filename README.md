@@ -1,3 +1,5 @@
+This repo contains the sample codes of programmaing Mellnaox.
+
 ## Setup
 
 Two servers equipped with ConnectX-6 adapter cards connected back-to-back.
